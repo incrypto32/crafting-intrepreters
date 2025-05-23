@@ -1,27 +1,28 @@
 #[derive(Clone, Debug, PartialEq)]
 pub enum Token {
-    EOF,
-    LEFT_PAREN,
-    RIGHT_PAREN,
-    LEFT_BRACE,
-    RIGHT_BRACE,
-    COMMA,
+    Eof,
+    LeftParen,
+    RightParen,
+    LeftBrace,
+    RightBrace,
+    Comma,
     DOT,
     MINUS,
     PLUS,
     SEMICOLON,
     STAR,
     BANG,
-    BANG_EQUAL,
+    BangEqual,
     EQUAL,
-    EQUAL_EQUAL,
+    EqualEqual,
     LESS,
-    LESS_EQUAL,
+    LessEqual,
     GREATER,
-    GREATER_EQUAL,
+    GreaterEqual,
     SLASH,
     STRING(String),
-    NUMBER(f64),
+    Number(f64),
+    Identifier,
 }
 
 pub struct Scanner {
@@ -51,7 +52,7 @@ impl Scanner {
             self.scan_token();
         }
 
-        self.tokens.push(Token::EOF);
+        self.tokens.push(Token::Eof);
         self.tokens.clone()
     }
 
@@ -77,11 +78,11 @@ impl Scanner {
     pub fn scan_token(&mut self) {
         if let Some(c) = self.advance() {
             match c {
-                '(' => self.add_token(Token::LEFT_PAREN),
-                ')' => self.add_token(Token::RIGHT_PAREN),
-                '{' => self.add_token(Token::LEFT_BRACE),
-                '}' => self.add_token(Token::RIGHT_BRACE),
-                ',' => self.add_token(Token::COMMA),
+                '(' => self.add_token(Token::LeftParen),
+                ')' => self.add_token(Token::RightParen),
+                '{' => self.add_token(Token::LeftBrace),
+                '}' => self.add_token(Token::RightBrace),
+                ',' => self.add_token(Token::Comma),
                 '.' => self.add_token(Token::DOT),
                 '-' => self.add_token(Token::MINUS),
                 '+' => self.add_token(Token::PLUS),
@@ -95,7 +96,7 @@ impl Scanner {
                 // This is because we need to process the char again in the next natural advance
                 '!' => {
                     if self.match_char('=') {
-                        self.add_token(Token::BANG_EQUAL)
+                        self.add_token(Token::BangEqual)
                     } else {
                         self.add_token(Token::BANG)
                     }
@@ -103,7 +104,7 @@ impl Scanner {
 
                 '=' => {
                     if self.match_char('=') {
-                        self.add_token(Token::EQUAL_EQUAL)
+                        self.add_token(Token::EqualEqual)
                     } else {
                         self.add_token(Token::EQUAL)
                     }
@@ -111,7 +112,7 @@ impl Scanner {
 
                 '<' => {
                     if self.match_char('=') {
-                        self.add_token(Token::LESS_EQUAL)
+                        self.add_token(Token::LessEqual)
                     } else {
                         self.add_token(Token::LESS)
                     }
@@ -119,7 +120,7 @@ impl Scanner {
 
                 '>' => {
                     if self.match_char('=') {
-                        self.add_token(Token::GREATER_EQUAL)
+                        self.add_token(Token::GreaterEqual)
                     } else {
                         self.add_token(Token::GREATER)
                     }
@@ -148,6 +149,8 @@ impl Scanner {
                 _ => {
                     if c.is_ascii_digit() {
                         self.scan_number();
+                    } else if self.is_alpha_numeric(c) {
+                        self.identifier();
                     } else {
                         self.error(self.line, "Unexpected character.");
                     }
@@ -158,6 +161,17 @@ impl Scanner {
 
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
+    }
+
+    fn is_alpha(&self, c: Option<char>) -> bool {
+        match c {
+            Some(c) => c.is_ascii_alphabetic() || c == '_',
+            None => false,
+        }
+    }
+
+    fn is_alpha_numeric(&self, c: Option<char>) -> bool {
+        self.is_alpha(c) || self.is_digit(c)
     }
 
     fn is_digit(&self, c: Option<char>) -> bool {
@@ -181,7 +195,15 @@ impl Scanner {
         }
 
         let value = self.source[self.start..self.current].to_string();
-        self.add_token(Token::NUMBER(value.parse().unwrap()));
+        self.add_token(Token::Number(value.parse().unwrap()));
+    }
+
+    fn identifier(&mut self) {
+        while self.is_alpha_numeric(self.peek()) {
+            self.advance();
+        }
+
+        self.add_token(Token::Identifier);
     }
 
     fn string(&mut self) {
@@ -231,16 +253,16 @@ mod test {
 
         let tokens = scanner.scan_tokens();
         let expected = vec![
-            super::Token::LEFT_BRACE,
-            super::Token::RIGHT_BRACE,
-            super::Token::LEFT_PAREN,
-            super::Token::RIGHT_PAREN,
-            super::Token::NUMBER(23454.0),
+            super::Token::LeftBrace,
+            super::Token::RightBrace,
+            super::Token::LeftParen,
+            super::Token::RightParen,
+            super::Token::Number(23454.0),
             super::Token::PLUS,
-            super::Token::NUMBER(23.4),
+            super::Token::Number(23.4),
             super::Token::MINUS,
-            super::Token::NUMBER(23.4),
-            super::Token::EOF,
+            super::Token::Number(23.4),
+            super::Token::Eof,
         ];
         assert_eq!(tokens.len(), 10);
         assert_eq!(tokens, expected);
