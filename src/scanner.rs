@@ -149,7 +149,7 @@ impl Scanner {
                 _ => {
                     if c.is_ascii_digit() {
                         self.scan_number();
-                    } else if self.is_alpha_numeric(c) {
+                    } else if self.is_alpha_numeric(Some(c)) { // Pass Some(c) here
                         self.identifier();
                     } else {
                         self.error(self.line, "Unexpected character.");
@@ -207,20 +207,18 @@ impl Scanner {
     }
 
     fn string(&mut self) {
-        while let Some(ch) = self.peek() {
-            match ch {
-                '"' => break,
-                '\n' => self.line += 1,
-                _ => {
-                    if self.is_at_end() {
-                        self.error(self.line, "Unterminated string.");
-                        return;
-                    }
-                    self.advance();
-                }
+        while self.peek().is_some() && self.peek() != Some('"') {
+            if self.peek() == Some('\n') {
+                self.line += 1;
             }
+            self.advance();
         }
 
+        if self.is_at_end() {
+            self.error(self.line, "Unterminated string.");
+            return;
+        }
+        
         // Consume the closing quote
         self.advance();
 
@@ -239,7 +237,12 @@ impl Scanner {
 
     fn error(&mut self, line: usize, message: &str) {
         self.has_error = true;
-        println!("Error: {} at line {}", message, line);
+        eprintln!("[line {}] Error: {}", line, message); // Changed to eprintln!
+    }
+
+    // Public getter for has_error
+    pub fn has_error(&self) -> bool {
+        self.has_error
     }
 }
 
