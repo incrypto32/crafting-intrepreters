@@ -252,7 +252,7 @@ mod test {
 
     #[test]
     fn testit() {
-        let code = "{} () 23454 + 23.4 - 23.4";
+        let code = "{} () 23454 + 23.4 - 23.4 + // Hi\n +";
         let mut scanner = super::Scanner::new(code.to_string());
 
         let tokens = scanner.scan_tokens();
@@ -266,9 +266,11 @@ mod test {
             super::Token::Number(23.4),
             super::Token::MINUS,
             super::Token::Number(23.4),
+            super::Token::PLUS,
+            super::Token::PLUS,
             super::Token::Eof,
         ];
-        assert_eq!(tokens.len(), 10);
+        assert_eq!(tokens.len(), 12);
         assert_eq!(tokens, expected);
     }
 }
