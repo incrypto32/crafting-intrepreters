@@ -1,14 +1,14 @@
 use crate::scanner::Token;
 
-pub trait ExprVisitor<R> {
-    fn visit_binary_expr(&mut self, expr: &Binary) -> R;
-    fn visit_unary_expr(&mut self, expr: &Unary) -> R;
-    fn visit_grouping_expr(&mut self, expr: &Grouping) -> R;
-    fn visit_literal_expr(&mut self, expr: &Literal) -> R;
+pub trait ExprVisitor {
+    fn visit_binary_expr(&mut self, expr: &Binary) -> String;
+    fn visit_unary_expr(&mut self, expr: &Unary) -> String;
+    fn visit_grouping_expr(&mut self, expr: &Grouping) -> String;
+    fn visit_literal_expr(&mut self, expr: &Literal) -> String;
 }
 
 pub trait Expr {
-    fn accept<R>(&self, visitor: &mut dyn ExprVisitor<R>) -> R;
+    fn accept(&self, visitor: &mut dyn ExprVisitor) -> String;
 }
 
 pub struct Binary {
@@ -18,7 +18,7 @@ pub struct Binary {
 }
 
 impl Expr for Binary {
-    fn accept<R>(&self, visitor: &mut dyn ExprVisitor<R>) -> R {
+    fn accept(&self, visitor: &mut dyn ExprVisitor) -> String {
         visitor.visit_binary_expr(self)
     }
 }
@@ -29,7 +29,7 @@ pub struct Unary {
 }
 
 impl Expr for Unary {
-    fn accept<R>(&self, visitor: &mut dyn ExprVisitor<R>) -> R {
+    fn accept(&self, visitor: &mut dyn ExprVisitor) -> String {
         visitor.visit_unary_expr(self)
     }
 }
@@ -39,7 +39,7 @@ pub struct Grouping {
 }
 
 impl Expr for Grouping {
-    fn accept<R>(&self, visitor: &mut dyn ExprVisitor<R>) -> R {
+    fn accept(&self, visitor: &mut dyn ExprVisitor) -> String {
         visitor.visit_grouping_expr(self)
     }
 }
@@ -56,7 +56,7 @@ pub struct Literal {
 }
 
 impl Expr for Literal {
-    fn accept<R>(&self, visitor: &mut dyn ExprVisitor<R>) -> R {
+    fn accept(&self, visitor: &mut dyn ExprVisitor) -> String {
         visitor.visit_literal_expr(self)
     }
 }
