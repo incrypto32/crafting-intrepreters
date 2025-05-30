@@ -1,5 +1,24 @@
 use crate::scanner::Token;
 
+#[derive(Debug)]
+pub enum ExprNode {
+    Binary(Binary),
+    Unary(Unary),
+    Grouping(Grouping),
+    Literal(Literal),
+}
+
+impl ExprNode {
+    pub fn accept(&self, visitor: &mut dyn ExprVisitor) -> String {
+        match self {
+            ExprNode::Binary(expr) => visitor.visit_binary_expr(expr),
+            ExprNode::Unary(expr) => visitor.visit_unary_expr(expr),
+            ExprNode::Grouping(expr) => visitor.visit_grouping_expr(expr),
+            ExprNode::Literal(expr) => visitor.visit_literal_expr(expr),
+        }
+    }
+}
+
 pub trait ExprVisitor {
     fn visit_binary_expr(&mut self, expr: &Binary) -> String;
     fn visit_unary_expr(&mut self, expr: &Unary) -> String;
@@ -7,43 +26,25 @@ pub trait ExprVisitor {
     fn visit_literal_expr(&mut self, expr: &Literal) -> String;
 }
 
-pub trait Expr {
-    fn accept(&self, visitor: &mut dyn ExprVisitor) -> String;
-}
-
+#[derive(Debug)]
 pub struct Binary {
-    pub left: Box<dyn Expr>,
+    pub left: Box<ExprNode>,
     pub operator: Token,
-    pub right: Box<dyn Expr>,
+    pub right: Box<ExprNode>,
 }
 
-impl Expr for Binary {
-    fn accept(&self, visitor: &mut dyn ExprVisitor) -> String {
-        visitor.visit_binary_expr(self)
-    }
-}
-
+#[derive(Debug)]
 pub struct Unary {
     pub operator: Token,
-    pub right: Box<dyn Expr>,
+    pub right: Box<ExprNode>,
 }
 
-impl Expr for Unary {
-    fn accept(&self, visitor: &mut dyn ExprVisitor) -> String {
-        visitor.visit_unary_expr(self)
-    }
-}
-
+#[derive(Debug)]
 pub struct Grouping {
-    pub expr: Box<dyn Expr>,
+    pub expr: Box<ExprNode>,
 }
 
-impl Expr for Grouping {
-    fn accept(&self, visitor: &mut dyn ExprVisitor) -> String {
-        visitor.visit_grouping_expr(self)
-    }
-}
-
+#[derive(Debug)]
 pub enum LiteralValue {
     Number(f64),
     String(String),
@@ -51,12 +52,7 @@ pub enum LiteralValue {
     Nil,
 }
 
+#[derive(Debug)]
 pub struct Literal {
     pub value: LiteralValue,
-}
-
-impl Expr for Literal {
-    fn accept(&self, visitor: &mut dyn ExprVisitor) -> String {
-        visitor.visit_literal_expr(self)
-    }
 }
