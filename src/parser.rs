@@ -16,6 +16,13 @@ pub struct Grouping<T: Expr> {
     expr: T,
 }
 
+pub enum LiteralValue {
+    Number(f64),
+    String(String),
+    Boolean(bool),
+    Nil
+}
+
 pub struct Literal {
-    value: 
+    value: LiteralValue
 }
