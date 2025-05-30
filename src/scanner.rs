@@ -6,21 +6,21 @@ pub enum Token {
     LeftBrace,
     RightBrace,
     Comma,
-    DOT,
-    MINUS,
-    PLUS,
-    SEMICOLON,
-    STAR,
-    BANG,
+    Dot,
+    Minus,
+    Plus,
+    SemiColon,
+    Star,
+    Bang,
     BangEqual,
-    EQUAL,
+    Equal,
     EqualEqual,
-    LESS,
+    Less,
     LessEqual,
-    GREATER,
+    Greater,
     GreaterEqual,
-    SLASH,
-    STRING(String),
+    Slash,
+    String(String),
     Number(f64),
     Identifier,
 }
@@ -83,11 +83,11 @@ impl Scanner {
                 '{' => self.add_token(Token::LeftBrace),
                 '}' => self.add_token(Token::RightBrace),
                 ',' => self.add_token(Token::Comma),
-                '.' => self.add_token(Token::DOT),
-                '-' => self.add_token(Token::MINUS),
-                '+' => self.add_token(Token::PLUS),
-                ';' => self.add_token(Token::SEMICOLON),
-                '*' => self.add_token(Token::STAR),
+                '.' => self.add_token(Token::Dot),
+                '-' => self.add_token(Token::Minus),
+                '+' => self.add_token(Token::Plus),
+                ';' => self.add_token(Token::SemiColon),
+                '*' => self.add_token(Token::Star),
 
                 // Scanning operators these are multi characters
                 // So we need to handle it appropriately
@@ -98,7 +98,7 @@ impl Scanner {
                     if self.match_char('=') {
                         self.add_token(Token::BangEqual)
                     } else {
-                        self.add_token(Token::BANG)
+                        self.add_token(Token::Bang)
                     }
                 }
 
@@ -106,7 +106,7 @@ impl Scanner {
                     if self.match_char('=') {
                         self.add_token(Token::EqualEqual)
                     } else {
-                        self.add_token(Token::EQUAL)
+                        self.add_token(Token::Equal)
                     }
                 }
 
@@ -114,7 +114,7 @@ impl Scanner {
                     if self.match_char('=') {
                         self.add_token(Token::LessEqual)
                     } else {
-                        self.add_token(Token::LESS)
+                        self.add_token(Token::Less)
                     }
                 }
 
@@ -122,7 +122,7 @@ impl Scanner {
                     if self.match_char('=') {
                         self.add_token(Token::GreaterEqual)
                     } else {
-                        self.add_token(Token::GREATER)
+                        self.add_token(Token::Greater)
                     }
                 }
 
@@ -134,7 +134,7 @@ impl Scanner {
                             self.advance();
                         }
                     } else {
-                        self.add_token(Token::SLASH);
+                        self.add_token(Token::Slash);
                     }
                 }
 
@@ -225,7 +225,7 @@ impl Scanner {
 
         // Extract the string value, excluding the quotes
         let value = self.source[self.start + 1..self.current - 1].to_string();
-        self.add_token(Token::STRING(value));
+        self.add_token(Token::String(value));
     }
 
     fn peek(&self) -> Option<char> {
@@ -262,12 +262,12 @@ mod test {
             super::Token::LeftParen,
             super::Token::RightParen,
             super::Token::Number(23454.0),
-            super::Token::PLUS,
+            super::Token::Plus,
             super::Token::Number(23.4),
-            super::Token::MINUS,
+            super::Token::Minus,
             super::Token::Number(23.4),
-            super::Token::PLUS,
-            super::Token::PLUS,
+            super::Token::Plus,
+            super::Token::Plus,
             super::Token::Eof,
         ];
         assert_eq!(tokens.len(), 12);
