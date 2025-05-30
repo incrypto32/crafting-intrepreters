@@ -149,7 +149,8 @@ impl Scanner {
                 _ => {
                     if c.is_ascii_digit() {
                         self.scan_number();
-                    } else if self.is_alpha_numeric(Some(c)) { // Pass Some(c) here
+                    } else if self.is_alpha_numeric(Some(c)) {
+                        // Pass Some(c) here
                         self.identifier();
                     } else {
                         self.error(self.line, "Unexpected character.");
@@ -218,7 +219,7 @@ impl Scanner {
             self.error(self.line, "Unterminated string.");
             return;
         }
-        
+
         // Consume the closing quote
         self.advance();
 
