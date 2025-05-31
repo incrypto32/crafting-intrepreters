@@ -13,7 +13,6 @@ impl AstPrinter {
         result.push('(');
         result.push_str(name);
         for expr in exprs {
-            result.push(' ');
             result.push_str(&expr.accept(self));
         }
         result.push(')');
@@ -56,7 +55,7 @@ mod tests {
         let expr = Expr::Literal(Literal {
             value: LiteralValue::Number(123.45),
         });
-        
+
         let result = expr.accept(&mut printer);
         assert_eq!(result, "123.45");
     }
@@ -67,7 +66,7 @@ mod tests {
         let expr = Expr::Literal(Literal {
             value: LiteralValue::String("hello".to_string()),
         });
-        
+
         let result = expr.accept(&mut printer);
         assert_eq!(result, "hello");
     }
@@ -78,7 +77,7 @@ mod tests {
         let expr = Expr::Literal(Literal {
             value: LiteralValue::Boolean(true),
         });
-        
+
         let result = expr.accept(&mut printer);
         assert_eq!(result, "true");
     }
@@ -89,7 +88,7 @@ mod tests {
         let expr = Expr::Literal(Literal {
             value: LiteralValue::Nil,
         });
-        
+
         let result = expr.accept(&mut printer);
         assert_eq!(result, "nil");
     }
@@ -103,7 +102,7 @@ mod tests {
                 value: LiteralValue::Number(123.0),
             })),
         });
-        
+
         let result = expr.accept(&mut printer);
         assert_eq!(result, "(- 123)");
     }
@@ -120,7 +119,7 @@ mod tests {
                 value: LiteralValue::Number(2.0),
             })),
         });
-        
+
         let result = expr.accept(&mut printer);
         assert_eq!(result, "(+ 1 2)");
     }
@@ -133,7 +132,7 @@ mod tests {
                 value: LiteralValue::Number(45.67),
             })),
         });
-        
+
         let result = expr.accept(&mut printer);
         assert_eq!(result, "(group 45.67)");
     }
@@ -156,7 +155,7 @@ mod tests {
                 })),
             })),
         });
-        
+
         let result = expr.accept(&mut printer);
         assert_eq!(result, "(- (group (+ 1 2)))");
     }
