@@ -13,6 +13,7 @@ impl AstPrinter {
         result.push('(');
         result.push_str(name);
         for expr in exprs {
+            result.push(' ');
             result.push_str(&expr.accept(self));
         }
         result.push(')');
