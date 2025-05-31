@@ -1,5 +1,4 @@
-use crate::parser::{ExprVisitor, Binary, Unary, Grouping, Literal, LiteralValue};
-use crate::scanner::Token;
+use crate::parser::{Binary, ExprVisitor, Grouping, Literal, LiteralValue, Unary};
 
 pub struct AstPrinter {}
 
