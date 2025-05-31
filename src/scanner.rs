@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Token {
     Eof,
@@ -244,6 +246,36 @@ impl Scanner {
     // Public getter for has_error
     pub fn has_error(&self) -> bool {
         self.has_error
+    }
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Token::Eof => write!(f, "EOF"),
+            Token::LeftParen => write!(f, "("),
+            Token::RightParen => write!(f, ")"),
+            Token::LeftBrace => write!(f, "{{"),
+            Token::RightBrace => write!(f, "}}"),
+            Token::Comma => write!(f, ","),
+            Token::Dot => write!(f, "."),
+            Token::Minus => write!(f, "-"),
+            Token::Plus => write!(f, "+"),
+            Token::SemiColon => write!(f, ";"),
+            Token::Star => write!(f, "*"),
+            Token::Bang => write!(f, "!"),
+            Token::BangEqual => write!(f, "!="),
+            Token::Equal => write!(f, "="),
+            Token::EqualEqual => write!(f, "=="),
+            Token::Less => write!(f, "<"),
+            Token::LessEqual => write!(f, "<="),
+            Token::Greater => write!(f, ">"),
+            Token::GreaterEqual => write!(f, ">="),
+            Token::Slash => write!(f, "/"),
+            Token::String(s) => write!(f, "{}", s),
+            Token::Number(n) => write!(f, "{}", n),
+            Token::Identifier => write!(f, "identifier"),
+        }
     }
 }
 

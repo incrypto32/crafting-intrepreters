@@ -23,29 +23,11 @@ impl AstPrinter {
 
 impl ExprVisitor for AstPrinter {
     fn visit_binary_expr(&mut self, expr: &Binary) -> String {
-        let operator_str = match expr.operator {
-            Token::Plus => "+",
-            Token::Minus => "-",
-            Token::Star => "*",
-            Token::Slash => "/",
-            Token::Greater => ">",
-            Token::GreaterEqual => ">=",
-            Token::Less => "<",
-            Token::LessEqual => "<=",
-            Token::BangEqual => "!=",
-            Token::EqualEqual => "==",
-            _ => "?",
-        };
-        self.parenthesize(operator_str, &[&expr.left, &expr.right])
+        self.parenthesize(&expr.operator.to_string(), &[&expr.left, &expr.right])
     }
 
     fn visit_unary_expr(&mut self, expr: &Unary) -> String {
-        let operator_str = match expr.operator {
-            Token::Minus => "-",
-            Token::Bang => "!",
-            _ => "?",
-        };
-        self.parenthesize(operator_str, &[&expr.right])
+        self.parenthesize(&expr.operator.to_string(), &[&expr.right])
     }
 
     fn visit_grouping_expr(&mut self, expr: &Grouping) -> String {
