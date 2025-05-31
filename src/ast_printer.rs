@@ -22,11 +22,16 @@ impl AstPrinter {
 
 impl ExprVisitor for AstPrinter {
     fn visit_binary_expr(&mut self, expr: &Binary) -> String {
-        self.parenthesize(&expr.operator.to_string(), &[&expr.left, &expr.right])
+        format!("{} {} {}", 
+                expr.left.accept(self), 
+                expr.operator.to_string(), 
+                expr.right.accept(self))
     }
 
     fn visit_unary_expr(&mut self, expr: &Unary) -> String {
-        self.parenthesize(&expr.operator.to_string(), &[&expr.right])
+        format!("{}{}", 
+                expr.operator.to_string(), 
+                expr.right.accept(self))
     }
 
     fn visit_grouping_expr(&mut self, expr: &Grouping) -> String {
@@ -104,7 +109,7 @@ mod tests {
         });
 
         let result = expr.accept(&mut printer);
-        assert_eq!(result, "(- 123)");
+        assert_eq!(result, "-123");
     }
 
     #[test]
@@ -121,7 +126,7 @@ mod tests {
         });
 
         let result = expr.accept(&mut printer);
-        assert_eq!(result, "(+ 1 2)");
+        assert_eq!(result, "1 + 2");
     }
 
     #[test]
@@ -157,6 +162,6 @@ mod tests {
         });
 
         let result = expr.accept(&mut printer);
-        assert_eq!(result, "(- (group (+ 1 2)))");
+        assert_eq!(result, "-(group 1 + 2)");
     }
 }
