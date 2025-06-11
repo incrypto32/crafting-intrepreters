@@ -1,20 +1,20 @@
 use crate::scanner::Token;
 
 #[derive(Debug)]
-pub enum ExprNode {
+pub enum Expr {
     Binary(Binary),
     Unary(Unary),
     Grouping(Grouping),
     Literal(Literal),
 }
 
-impl ExprNode {
+impl Expr {
     pub fn accept(&self, visitor: &mut dyn ExprVisitor) -> String {
         match self {
-            ExprNode::Binary(expr) => visitor.visit_binary_expr(expr),
-            ExprNode::Unary(expr) => visitor.visit_unary_expr(expr),
-            ExprNode::Grouping(expr) => visitor.visit_grouping_expr(expr),
-            ExprNode::Literal(expr) => visitor.visit_literal_expr(expr),
+            Expr::Binary(expr) => visitor.visit_binary_expr(expr),
+            Expr::Unary(expr) => visitor.visit_unary_expr(expr),
+            Expr::Grouping(expr) => visitor.visit_grouping_expr(expr),
+            Expr::Literal(expr) => visitor.visit_literal_expr(expr),
         }
     }
 }
@@ -28,20 +28,20 @@ pub trait ExprVisitor {
 
 #[derive(Debug)]
 pub struct Binary {
-    pub left: Box<ExprNode>,
+    pub left: Box<Expr>,
     pub operator: Token,
-    pub right: Box<ExprNode>,
+    pub right: Box<Expr>,
 }
 
 #[derive(Debug)]
 pub struct Unary {
     pub operator: Token,
-    pub right: Box<ExprNode>,
+    pub right: Box<Expr>,
 }
 
 #[derive(Debug)]
 pub struct Grouping {
-    pub expr: Box<ExprNode>,
+    pub expr: Box<Expr>,
 }
 
 #[derive(Debug)]
@@ -55,4 +55,15 @@ pub enum LiteralValue {
 #[derive(Debug)]
 pub struct Literal {
     pub value: LiteralValue,
+}
+
+pub struct Parser {
+    tokens: Vec<Token>,
+    current: usize,
+}
+
+impl Parser {
+    fn new(tokens: Vec<_>) -> Self {
+        Parser { tokens, current: 0 }
+    }
 }
