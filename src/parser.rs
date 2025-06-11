@@ -63,7 +63,44 @@ pub struct Parser {
 }
 
 impl Parser {
-    fn new(tokens: Vec<_>) -> Self {
+    fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
+    }
+
+    fn match_token(&mut self, types: &[Token]) -> bool {
+        for token_type in types {
+            if self.check(token_type) {
+                self.advance();
+                return true;
+            }
+        }
+        false
+    }
+
+    fn check(&self, token_type: &Token) -> bool {
+        if self.is_at_end() {
+            false
+        } else {
+            std::mem::discriminant(&self.peek()) == std::mem::discriminant(token_type)
+        }
+    }
+
+    fn advance(&mut self) -> &Token {
+        if !self.is_at_end() {
+            self.current += 1;
+        }
+        self.previous()
+    }
+
+    fn is_at_end(&self) -> bool {
+        matches!(self.peek(), Token::Eof)
+    }
+
+    fn peek(&self) -> &Token {
+        &self.tokens[self.current]
+    }
+
+    fn previous(&self) -> &Token {
+        &self.tokens[self.current - 1]
     }
 }
