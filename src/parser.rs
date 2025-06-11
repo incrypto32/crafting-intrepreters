@@ -81,7 +81,7 @@ impl Parser {
         if self.is_at_end() {
             false
         } else {
-            std::mem::discriminant(&self.peek()) == std::mem::discriminant(token_type)
+            matches!(self.peek(), token_type)
         }
     }
 
