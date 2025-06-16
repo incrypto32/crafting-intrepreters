@@ -1,9 +1,12 @@
+use std::fs;
 use std::io::{self, Write};
 use std::process::exit;
-use std::fs;
 
 use scanner::Scanner;
+mod ast_printer;
+mod parser;
 mod scanner;
+mod token;
 
 fn main() {
     let mut lox = Lox::new();
@@ -66,9 +69,10 @@ impl Lox {
                 self.report(0, "while flushing stdout", &e.to_string());
                 // If we can't flush stdout, the REPL is likely unusable.
                 // Set had_error and break.
-                self.had_error = true; 
+                self.had_error = true;
             });
-            if self.had_error { // Check if flush failed
+            if self.had_error {
+                // Check if flush failed
                 break;
             }
 
@@ -78,7 +82,7 @@ impl Lox {
                 Ok(_) => {
                     let mut scanner = Scanner::new(input);
                     let tokens = scanner.scan_tokens();
-                    
+
                     // Scanner prints its own errors to stderr.
                     // We do NOT set self.had_error for REPL line errors,
                     // allowing the user to continue.

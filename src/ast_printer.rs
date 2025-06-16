@@ -1,5 +1,5 @@
-use crate::parser::{Binary, Expr, ExprVisitor, Grouping, Literal, LiteralValue, Unary};
-use crate::scanner::Token;
+use crate::parser::{Binary, ExprVisitor, Grouping, Literal, Unary};
+use crate::token::{LiteralValue, Token, TokenType};
 
 pub struct AstPrinter {}
 
@@ -7,36 +7,24 @@ impl AstPrinter {
     pub fn new() -> Self {
         AstPrinter {}
     }
-
-    fn parenthesize(&mut self, name: &str, exprs: &[&crate::parser::Expr]) -> String {
-        let mut result = String::new();
-        result.push('(');
-        result.push_str(name);
-        for expr in exprs {
-            result.push(' ');
-            result.push_str(&expr.accept(self));
-        }
-        result.push(')');
-        result
-    }
 }
 
 impl ExprVisitor for AstPrinter {
     fn visit_binary_expr(&mut self, expr: &Binary) -> String {
-        format!("{} {} {}", 
-                expr.left.accept(self), 
-                expr.operator.to_string(), 
-                expr.right.accept(self))
+        format!(
+            "{} {} {}",
+            expr.left.accept(self),
+            expr.operator,
+            expr.right.accept(self)
+        )
     }
 
     fn visit_unary_expr(&mut self, expr: &Unary) -> String {
-        format!("{}{}", 
-                expr.operator.to_string(), 
-                expr.right.accept(self))
+        format!("{}{}", expr.operator, expr.right.accept(self))
     }
 
     fn visit_grouping_expr(&mut self, expr: &Grouping) -> String {
-        self.parenthesize("group", &[&expr.expr])
+        format!("({})", expr.expr.accept(self))
     }
 
     fn visit_literal_expr(&mut self, expr: &Literal) -> String {
@@ -53,8 +41,7 @@ impl ExprVisitor for AstPrinter {
 mod tests {
     use super::*;
     use crate::parser::Expr;
-    use crate::scanner::Token;
-
+    use crate::token::{Token, TokenType};
     #[test]
     fn test_literal_number() {
         let mut printer = AstPrinter::new();
@@ -103,7 +90,7 @@ mod tests {
     fn test_unary_expression() {
         let mut printer = AstPrinter::new();
         let expr = Expr::Unary(Unary {
-            operator: Token::Minus,
+            operator: Token::simple(TokenType::Minus, "-", 0),
             right: Box::new(Expr::Literal(Literal {
                 value: LiteralValue::Number(123.0),
             })),
@@ -120,7 +107,7 @@ mod tests {
             left: Box::new(Expr::Literal(Literal {
                 value: LiteralValue::Number(1.0),
             })),
-            operator: Token::Plus,
+            operator: Token::simple(TokenType::Plus, "+", 0),
             right: Box::new(Expr::Literal(Literal {
                 value: LiteralValue::Number(2.0),
             })),
@@ -140,7 +127,7 @@ mod tests {
         });
 
         let result = expr.accept(&mut printer);
-        assert_eq!(result, "(group 45.67)");
+        assert_eq!(result, "(45.67)");
     }
 
     #[test]
@@ -148,13 +135,13 @@ mod tests {
         let mut printer = AstPrinter::new();
         // Represents: (- (group (+ 1 2)))
         let expr = Expr::Unary(Unary {
-            operator: Token::Minus,
+            operator: Token::simple(TokenType::Minus, "-", 0),
             right: Box::new(Expr::Grouping(Grouping {
                 expr: Box::new(Expr::Binary(Binary {
                     left: Box::new(Expr::Literal(Literal {
                         value: LiteralValue::Number(1.0),
                     })),
-                    operator: Token::Plus,
+                    operator: Token::simple(TokenType::Plus, "+", 0),
                     right: Box::new(Expr::Literal(Literal {
                         value: LiteralValue::Number(2.0),
                     })),
@@ -163,6 +150,6 @@ mod tests {
         });
 
         let result = expr.accept(&mut printer);
-        assert_eq!(result, "-(group 1 + 2)");
+        assert_eq!(result, "-(1 + 2)");
     }
 }
