@@ -11,17 +11,17 @@ impl AstPrinter {
 }
 
 impl StmtVisitor<String> for AstPrinter {
-    fn visit_expr(&mut self, expr: &Expr) -> String {
+    fn visit_expr(&self, expr: &Expr) -> String {
         expr.accept(self)
     }
 
-    fn visit_print(&mut self, expr: &Expr) -> String {
+    fn visit_print(&self, expr: &Expr) -> String {
         format!("print {}", expr.accept(self))
     }
 }
 
 impl ExprVisitor<String> for AstPrinter {
-    fn visit_binary(&mut self, expr: &Binary) -> String {
+    fn visit_binary(&self, expr: &Binary) -> String {
         format!(
             "({} {} {})",
             expr.operator,
@@ -30,15 +30,15 @@ impl ExprVisitor<String> for AstPrinter {
         )
     }
 
-    fn visit_unary(&mut self, expr: &Unary) -> String {
+    fn visit_unary(&self, expr: &Unary) -> String {
         format!("({} {})", expr.operator, expr.right.accept(self))
     }
 
-    fn visit_grouping(&mut self, expr: &Grouping) -> String {
+    fn visit_grouping(&self, expr: &Grouping) -> String {
         format!("(group {})", expr.expr.accept(self))
     }
 
-    fn visit_literal(&mut self, expr: &Literal) -> String {
+    fn visit_literal(&self, expr: &Literal) -> String {
         match &expr.value {
             LiteralValue::Number(n) => n.to_string(),
             LiteralValue::String(s) => s.clone(),

@@ -25,7 +25,7 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn accept<T>(&self, visitor: &mut dyn ExprVisitor<T>) -> T {
+    pub fn accept<T>(&self, visitor: &dyn ExprVisitor<T>) -> T {
         match self {
             Expr::Binary(expr) => visitor.visit_binary(expr),
             Expr::Unary(expr) => visitor.visit_unary(expr),
@@ -36,15 +36,15 @@ impl Expr {
 }
 
 pub trait ExprVisitor<T> {
-    fn visit_binary(&mut self, expr: &Binary) -> T;
-    fn visit_unary(&mut self, expr: &Unary) -> T;
-    fn visit_grouping(&mut self, expr: &Grouping) -> T;
-    fn visit_literal(&mut self, expr: &Literal) -> T;
+    fn visit_binary(&self, expr: &Binary) -> T;
+    fn visit_unary(&self, expr: &Unary) -> T;
+    fn visit_grouping(&self, expr: &Grouping) -> T;
+    fn visit_literal(&self, expr: &Literal) -> T;
 }
 
 pub trait StmtVisitor<T> {
-    fn visit_expr(&mut self, expr: &Expr) -> T;
-    fn visit_print(&mut self, expr: &Expr) -> T;
+    fn visit_expr(&self, expr: &Expr) -> T;
+    fn visit_print(&self, expr: &Expr) -> T;
 }
 
 #[derive(Debug)]

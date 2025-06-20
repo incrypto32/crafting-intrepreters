@@ -60,23 +60,23 @@ impl Interpreter {
 }
 
 impl StmtVisitor<Result<LiteralValue, RuntimeError>> for Interpreter {
-    fn visit_expr(&mut self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
+    fn visit_expr(&self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
         expr.accept(self)
     }
 
-    fn visit_print(&mut self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
+    fn visit_print(&self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
         expr.accept(self)
     }
 }
 
 impl ExprVisitor<Result<LiteralValue, RuntimeError>> for Interpreter {
-    fn visit_binary(&mut self, expr: &Binary) -> Result<LiteralValue, RuntimeError> {
+    fn visit_binary(&self, expr: &Binary) -> Result<LiteralValue, RuntimeError> {
         let left = expr.left.accept(self)?;
         let right = expr.right.accept(self)?;
         evaluate_binary_expr(left, right, &expr.operator)
     }
 
-    fn visit_unary(&mut self, expr: &Unary) -> Result<LiteralValue, RuntimeError> {
+    fn visit_unary(&self, expr: &Unary) -> Result<LiteralValue, RuntimeError> {
         let operator = expr.operator.typ;
         let right = expr.right.accept(self)?;
         match (&operator, &right) {
@@ -89,11 +89,11 @@ impl ExprVisitor<Result<LiteralValue, RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_grouping(&mut self, expr: &Grouping) -> Result<LiteralValue, RuntimeError> {
+    fn visit_grouping(&self, expr: &Grouping) -> Result<LiteralValue, RuntimeError> {
         expr.expr.accept(self)
     }
 
-    fn visit_literal(&mut self, expr: &Literal) -> Result<LiteralValue, RuntimeError> {
+    fn visit_literal(&self, expr: &Literal) -> Result<LiteralValue, RuntimeError> {
         Ok(expr.value.clone())
     }
 }
