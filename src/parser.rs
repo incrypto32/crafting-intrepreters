@@ -88,7 +88,6 @@ pub struct Parser {
 }
 
 impl Parser {
-    const PRINT_KEYWORD: &str = "print";
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
@@ -108,9 +107,7 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Stmt, ParseError> {
-        if self.match_token(&[TokenType::Identifier])
-            && self.previous().lexeme == Self::PRINT_KEYWORD
-        {
+        if self.match_token(&[TokenType::Print]) {
             return self.print_statement();
         }
 

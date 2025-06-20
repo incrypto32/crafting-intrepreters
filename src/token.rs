@@ -34,6 +34,8 @@ pub enum TokenType {
     True,
     False,
     Nil,
+    Print,
+    Var,
 
     // End of file.
     Eof,
@@ -127,6 +129,8 @@ impl std::fmt::Display for TokenType {
             True => "true",
             False => "false",
             Nil => "nil",
+            Print => "print",
+            Var => "var",
             Eof => "EOF",
         };
         write!(f, "{}", s)

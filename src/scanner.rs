@@ -193,6 +193,8 @@ impl Scanner {
             "true" => TokenType::True,
             "false" => TokenType::False,
             "nil" => TokenType::Nil,
+            "print" => TokenType::Print,
+            "var" => TokenType::Var,
             _ => TokenType::Identifier,
         };
 
