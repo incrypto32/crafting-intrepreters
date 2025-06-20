@@ -1,11 +1,22 @@
-use crate::parser::{Binary, ExprVisitor, Grouping, Literal, Unary};
+use crate::parser::{Binary, Expr, ExprVisitor, Grouping, Literal, StmtVisitor, Unary};
 use crate::token::LiteralValue;
 
 pub struct AstPrinter {}
 
 impl AstPrinter {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         AstPrinter {}
+    }
+}
+
+impl StmtVisitor<String> for AstPrinter {
+    fn visit_expr_stmt(&mut self, expr: &Expr) -> String {
+        expr.accept(self)
+    }
+
+    fn visit_print_stmt(&mut self, expr: &Expr) -> String {
+        format!("print {}", expr.accept(self))
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::parser::{Binary, Expr, ExprVisitor, Grouping, Literal, Unary};
+use crate::parser::{Binary, Expr, ExprVisitor, Grouping, Literal, Stmt, StmtVisitor, Unary};
 use crate::token::{LiteralValue, Token, TokenType};
 
 pub struct Interpreter {}
@@ -8,8 +8,14 @@ impl Interpreter {
         Interpreter {}
     }
 
-    pub fn interpret(&mut self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
-        expr.accept(self)
+    pub fn interpret(&mut self, statements: &Vec<Stmt>, print: bool) -> Result<(), RuntimeError> {
+        for stmt in statements {
+            let value = stmt.accept(self)?;
+            if print {
+                println!("{}", value);
+            }
+        }
+        Ok(())
     }
 }
 
@@ -137,6 +143,19 @@ fn evaluate_binary_expr(
             }
         }
         _ => Err(RuntimeError::invalid_operator(operator_type, op.clone())),
+    }
+}
+
+impl StmtVisitor<Result<LiteralValue, RuntimeError>> for Interpreter {
+    fn visit_expr_stmt(&mut self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
+        expr.accept(self)?;
+        Ok(LiteralValue::Nil)
+    }
+
+    fn visit_print_stmt(&mut self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
+        let value = expr.accept(self)?;
+        println!("{}", value);
+        Ok(value)
     }
 }
 

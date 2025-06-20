@@ -2,6 +2,20 @@ use std::fmt::Display;
 
 use crate::token::{LiteralValue, Token, TokenType};
 
+pub enum Stmt {
+    Expr(Expr),
+    Print(Expr),
+}
+
+impl Stmt {
+    pub fn accept<T>(&self, visitor: &mut dyn StmtVisitor<T>) -> T {
+        match self {
+            Stmt::Expr(expr) => visitor.visit_expr_stmt(expr),
+            Stmt::Print(expr) => visitor.visit_print_stmt(expr),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum Expr {
     Binary(Binary),
@@ -26,6 +40,11 @@ pub trait ExprVisitor<T> {
     fn visit_unary_expr(&mut self, expr: &Unary) -> T;
     fn visit_grouping_expr(&mut self, expr: &Grouping) -> T;
     fn visit_literal_expr(&mut self, expr: &Literal) -> T;
+}
+
+pub trait StmtVisitor<T> {
+    fn visit_expr_stmt(&mut self, expr: &Expr) -> T;
+    fn visit_print_stmt(&mut self, expr: &Expr) -> T;
 }
 
 #[derive(Debug)]
@@ -69,8 +88,45 @@ pub struct Parser {
 }
 
 impl Parser {
+    const PRINT_KEYWORD: &str = "print";
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
+    }
+
+    pub fn parse(&mut self) -> Result<Vec<Stmt>, ParseError> {
+        let mut statements = Vec::new();
+        while !self.is_at_end() {
+            statements.push(self.statement()?);
+        }
+        Ok(statements)
+    }
+
+    /// Parse a single expression.
+    #[allow(dead_code)]
+    fn parse_expr(&mut self) -> Result<Expr, ParseError> {
+        self.expression()
+    }
+
+    fn statement(&mut self) -> Result<Stmt, ParseError> {
+        if self.match_token(&[TokenType::Identifier])
+            && self.previous().lexeme == Self::PRINT_KEYWORD
+        {
+            return self.print_statement();
+        }
+
+        self.expression_statement()
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt, ParseError> {
+        let expr = self.expression()?;
+        self.consume(TokenType::SemiColon, "Expect ';' after expression.")?;
+        Ok(Stmt::Expr(expr))
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt, ParseError> {
+        let expr = self.expression()?;
+        self.consume(TokenType::SemiColon, "Expect ';' after expression.")?;
+        Ok(Stmt::Print(expr))
     }
 
     fn match_token(&mut self, types: &[TokenType]) -> bool {
@@ -108,10 +164,6 @@ impl Parser {
 
     fn previous(&self) -> Token {
         self.tokens[self.current - 1].clone()
-    }
-
-    pub fn parse(&mut self) -> Result<Expr, ParseError> {
-        self.expression()
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {
@@ -275,7 +327,7 @@ mod tests {
 
         // Parse the tokens into an expression.
         let mut parser = Parser::new(tokens);
-        let expr = parser.parse().expect("Parser returned an error");
+        let expr = parser.parse_expr().expect("Parser returned an error");
 
         // Print the AST back to a string.
         let mut printer = AstPrinter::new();
