@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TokenType {
     // Single-character tokens.
@@ -43,6 +45,27 @@ pub enum LiteralValue {
     String(String),
     Boolean(bool),
     Nil,
+}
+
+impl LiteralValue {
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            LiteralValue::Boolean(b) => *b,
+            LiteralValue::Nil => false,
+            _ => true,
+        }
+    }
+}
+
+impl Display for LiteralValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LiteralValue::Number(n) => write!(f, "{}", n),
+            LiteralValue::String(s) => write!(f, "\"{}\"", s),
+            LiteralValue::Boolean(b) => write!(f, "{}", b),
+            LiteralValue::Nil => write!(f, "nil"),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -119,4 +142,4 @@ impl std::fmt::Display for Token {
             write!(f, "{}", self.typ)
         }
     }
-} 
+}

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::token::{LiteralValue, Token, TokenType};
 
 #[derive(Debug)]
@@ -9,7 +11,7 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn accept(&self, visitor: &mut dyn ExprVisitor) -> String {
+    pub fn accept<T>(&self, visitor: &mut dyn ExprVisitor<T>) -> T {
         match self {
             Expr::Binary(expr) => visitor.visit_binary_expr(expr),
             Expr::Unary(expr) => visitor.visit_unary_expr(expr),
@@ -19,11 +21,11 @@ impl Expr {
     }
 }
 
-pub trait ExprVisitor {
-    fn visit_binary_expr(&mut self, expr: &Binary) -> String;
-    fn visit_unary_expr(&mut self, expr: &Unary) -> String;
-    fn visit_grouping_expr(&mut self, expr: &Grouping) -> String;
-    fn visit_literal_expr(&mut self, expr: &Literal) -> String;
+pub trait ExprVisitor<T> {
+    fn visit_binary_expr(&mut self, expr: &Binary) -> T;
+    fn visit_unary_expr(&mut self, expr: &Unary) -> T;
+    fn visit_grouping_expr(&mut self, expr: &Grouping) -> T;
+    fn visit_literal_expr(&mut self, expr: &Literal) -> T;
 }
 
 #[derive(Debug)]
@@ -55,13 +57,19 @@ pub struct ParseError {
     pub message: String,
 }
 
+impl Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} at line {}", self.message, self.token.line)
+    }
+}
+
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
 }
 
 impl Parser {
-    fn new(tokens: Vec<Token>) -> Self {
+    pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
 
@@ -224,8 +232,8 @@ impl Parser {
 
         let token = self.peek().clone();
         Err(ParseError {
-            token,
-            message: "Expected expression.".to_string(),
+            token: token.clone(),
+            message: format!("Expected expression, got '{}'", token.lexeme),
         })
     }
 
@@ -243,5 +251,84 @@ impl Parser {
                 message: message.to_string(),
             })
         }
+    }
+}
+
+// Add unit tests for the parser.
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast_printer::AstPrinter;
+    use crate::scanner::Scanner;
+
+    /// Helper that takes source code, scans it into tokens, parses into an AST and
+    /// pretty-prints it using `AstPrinter` so that we can compare with a simple string.
+    fn parse_and_print(source: &str) -> String {
+        // Scan the source into tokens.
+        let mut scanner = Scanner::new(source.to_string());
+        let tokens = scanner.scan_tokens();
+        assert!(
+            !scanner.has_error(),
+            "Scanner reported an error while processing '{}'.",
+            source
+        );
+
+        // Parse the tokens into an expression.
+        let mut parser = Parser::new(tokens);
+        let expr = parser.parse().expect("Parser returned an error");
+
+        // Print the AST back to a string.
+        let mut printer = AstPrinter::new();
+        expr.accept(&mut printer)
+    }
+
+    #[test]
+    fn parses_single_number_literal() {
+        assert_eq!(parse_and_print("123"), "123");
+    }
+
+    #[test]
+    fn parses_unary_minus() {
+        assert_eq!(parse_and_print("-123"), "(- 123)");
+    }
+
+    #[test]
+    fn parses_simple_binary_expression() {
+        assert_eq!(parse_and_print("1 + 2"), "(+ 1 2)");
+    }
+
+    #[test]
+    fn parses_operator_precedence() {
+        // '*' has higher precedence than '+', so the expression should parse as `1 + (2 * 3)`.
+        assert_eq!(parse_and_print("1 + 2 * 3"), "(+ 1 (* 2 3))");
+    }
+
+    #[test]
+    fn parses_grouping_expression() {
+        assert_eq!(parse_and_print("(1 + 2) * 3"), "(* (group (+ 1 2)) 3)");
+    }
+
+    #[test]
+    fn parses_comparison_expression() {
+        assert_eq!(parse_and_print("1 < 2"), "(< 1 2)");
+    }
+
+    #[test]
+    fn parses_equality_expression() {
+        assert_eq!(parse_and_print("1 == 1"), "(== 1 1)");
+    }
+
+    #[test]
+    fn parses_equality_expression2() {
+        assert_eq!(parse_and_print("1 == 1"), "(== 1 1)");
+    }
+
+    #[test]
+    fn reports_error_on_unterminated_parentheses() {
+        // A lone '(' cannot form a valid expression and should result in a ParseError.
+        let mut scanner = Scanner::new("(".to_string());
+        let tokens = scanner.scan_tokens();
+        let mut parser = Parser::new(tokens);
+        assert!(parser.parse().is_err());
     }
 }

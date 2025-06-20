@@ -3,7 +3,12 @@ use std::io::{self, Write};
 use std::process::exit;
 
 use scanner::Scanner;
+
+use crate::ast_printer::AstPrinter;
+use crate::expr_eval::Interpreter;
+use crate::parser::Parser;
 mod ast_printer;
+mod expr_eval;
 mod parser;
 mod scanner;
 mod token;
@@ -51,11 +56,14 @@ impl Lox {
                 } else {
                     // For now, we'll print tokens if no error, similar to REPL behavior.
                     // This can be removed or made conditional later.
-                    println!("{:?}", tokens);
+                    let mut parser = Parser::new(tokens);
+                    let expr = parser.parse().unwrap();
+                    let mut printer = AstPrinter::new();
+                    println!("{}", expr.accept(&mut printer));
                 }
             }
             Err(e) => {
-                self.report(0, &format!("while reading '{}'", path), &e.to_string());
+                self.report(0, Some(&format!("while reading '{}'", path)), &e.to_string());
                 // self.had_error is set by self.report
             }
         }
@@ -66,11 +74,12 @@ impl Lox {
         loop {
             print!("> ");
             io::stdout().flush().unwrap_or_else(|e| {
-                self.report(0, "while flushing stdout", &e.to_string());
+                self.report(0, Some("while flushing stdout"), &e.to_string());
                 // If we can't flush stdout, the REPL is likely unusable.
                 // Set had_error and break.
                 self.had_error = true;
             });
+
             if self.had_error {
                 // Check if flush failed
                 break;
@@ -87,11 +96,25 @@ impl Lox {
                     // We do NOT set self.had_error for REPL line errors,
                     // allowing the user to continue.
                     if !scanner.has_error() {
-                        println!("{:?}", tokens);
+                        let mut parser = Parser::new(tokens);
+                        let expr = parser.parse().unwrap_or_else(|e| {
+                            self.report(e.token.line, None, &e.to_string());
+                            std::process::exit(65);
+                        });
+                        let mut printer = AstPrinter::new();
+                        println!("{}", expr.accept(&mut printer));
+
+                        let mut eval = Interpreter::new();
+                        match eval.interpret(&expr) {
+                            Ok(value) => println!("{}", value),
+                            Err(e) => {
+                                self.report(e.token.line, None, &e.message);
+                            }
+                        }
                     }
                 }
                 Err(e) => {
-                    self.report(0, "while reading from prompt", &e.to_string());
+                    self.report(0, Some("while reading from prompt"), &e.to_string());
                     // self.had_error is set by self.report. Break REPL on stdin error.
                     break;
                 }
@@ -101,11 +124,18 @@ impl Lox {
 
     #[allow(dead_code)] // Keep error method for potential future direct use
     fn error(&mut self, line: usize, message: &str) {
-        self.report(line, "", message);
+        self.report(line, None, message);
     }
 
-    fn report(&mut self, line: usize, location: &str, message: &str) {
-        eprintln!("[line {}] Error{}: {}", line, location, message);
+    fn report(&mut self, line: usize, location: Option<&str>, message: &str) {
+        eprintln!(
+            "[line {}] Error{}: {}",
+            line,
+            location
+                .map(|s| format!(" {}", s))
+                .unwrap_or("".to_string()),
+            message
+        );
         self.had_error = true;
     }
 }

@@ -1,5 +1,5 @@
 use crate::parser::{Binary, ExprVisitor, Grouping, Literal, Unary};
-use crate::token::{LiteralValue, Token, TokenType};
+use crate::token::LiteralValue;
 
 pub struct AstPrinter {}
 
@@ -9,22 +9,22 @@ impl AstPrinter {
     }
 }
 
-impl ExprVisitor for AstPrinter {
+impl ExprVisitor<String> for AstPrinter {
     fn visit_binary_expr(&mut self, expr: &Binary) -> String {
         format!(
-            "{} {} {}",
-            expr.left.accept(self),
+            "({} {} {})",
             expr.operator,
+            expr.left.accept(self),
             expr.right.accept(self)
         )
     }
 
     fn visit_unary_expr(&mut self, expr: &Unary) -> String {
-        format!("{}{}", expr.operator, expr.right.accept(self))
+        format!("({} {})", expr.operator, expr.right.accept(self))
     }
 
     fn visit_grouping_expr(&mut self, expr: &Grouping) -> String {
-        format!("({})", expr.expr.accept(self))
+        format!("(group {})", expr.expr.accept(self))
     }
 
     fn visit_literal_expr(&mut self, expr: &Literal) -> String {
@@ -97,7 +97,7 @@ mod tests {
         });
 
         let result = expr.accept(&mut printer);
-        assert_eq!(result, "-123");
+        assert_eq!(result, "(- 123)");
     }
 
     #[test]
@@ -114,7 +114,7 @@ mod tests {
         });
 
         let result = expr.accept(&mut printer);
-        assert_eq!(result, "1 + 2");
+        assert_eq!(result, "(+ 1 2)");
     }
 
     #[test]
@@ -127,7 +127,7 @@ mod tests {
         });
 
         let result = expr.accept(&mut printer);
-        assert_eq!(result, "(45.67)");
+        assert_eq!(result, "(group 45.67)");
     }
 
     #[test]
@@ -150,6 +150,6 @@ mod tests {
         });
 
         let result = expr.accept(&mut printer);
-        assert_eq!(result, "-(1 + 2)");
+        assert_eq!(result, "(- (group (+ 1 2)))");
     }
 }
