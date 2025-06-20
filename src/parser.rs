@@ -10,8 +10,8 @@ pub enum Stmt {
 impl Stmt {
     pub fn accept<T>(&self, visitor: &mut dyn StmtVisitor<T>) -> T {
         match self {
-            Stmt::Expr(expr) => visitor.visit_expr_stmt(expr),
-            Stmt::Print(expr) => visitor.visit_print_stmt(expr),
+            Stmt::Expr(expr) => visitor.visit_expr(expr),
+            Stmt::Print(expr) => visitor.visit_print(expr),
         }
     }
 }
@@ -27,24 +27,24 @@ pub enum Expr {
 impl Expr {
     pub fn accept<T>(&self, visitor: &mut dyn ExprVisitor<T>) -> T {
         match self {
-            Expr::Binary(expr) => visitor.visit_binary_expr(expr),
-            Expr::Unary(expr) => visitor.visit_unary_expr(expr),
-            Expr::Grouping(expr) => visitor.visit_grouping_expr(expr),
-            Expr::Literal(expr) => visitor.visit_literal_expr(expr),
+            Expr::Binary(expr) => visitor.visit_binary(expr),
+            Expr::Unary(expr) => visitor.visit_unary(expr),
+            Expr::Grouping(expr) => visitor.visit_grouping(expr),
+            Expr::Literal(expr) => visitor.visit_literal(expr),
         }
     }
 }
 
 pub trait ExprVisitor<T> {
-    fn visit_binary_expr(&mut self, expr: &Binary) -> T;
-    fn visit_unary_expr(&mut self, expr: &Unary) -> T;
-    fn visit_grouping_expr(&mut self, expr: &Grouping) -> T;
-    fn visit_literal_expr(&mut self, expr: &Literal) -> T;
+    fn visit_binary(&mut self, expr: &Binary) -> T;
+    fn visit_unary(&mut self, expr: &Unary) -> T;
+    fn visit_grouping(&mut self, expr: &Grouping) -> T;
+    fn visit_literal(&mut self, expr: &Literal) -> T;
 }
 
 pub trait StmtVisitor<T> {
-    fn visit_expr_stmt(&mut self, expr: &Expr) -> T;
-    fn visit_print_stmt(&mut self, expr: &Expr) -> T;
+    fn visit_expr(&mut self, expr: &Expr) -> T;
+    fn visit_print(&mut self, expr: &Expr) -> T;
 }
 
 #[derive(Debug)]

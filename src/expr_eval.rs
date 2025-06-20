@@ -1,24 +1,6 @@
 use crate::parser::{Binary, Expr, ExprVisitor, Grouping, Literal, Stmt, StmtVisitor, Unary};
 use crate::token::{LiteralValue, Token, TokenType};
 
-pub struct Interpreter {}
-
-impl Interpreter {
-    pub fn new() -> Self {
-        Interpreter {}
-    }
-
-    pub fn interpret(&mut self, statements: &Vec<Stmt>, print: bool) -> Result<(), RuntimeError> {
-        for stmt in statements {
-            let value = stmt.accept(self)?;
-            if print {
-                println!("{}", value);
-            }
-        }
-        Ok(())
-    }
-}
-
 pub struct RuntimeError {
     pub message: String,
     pub token: Token,
@@ -56,6 +38,63 @@ fn format_literal(literal: &LiteralValue) -> String {
         LiteralValue::String(s) => format!("\"{}\"", s),
         LiteralValue::Boolean(b) => b.to_string(),
         LiteralValue::Nil => "nil".to_string(),
+    }
+}
+
+pub struct Interpreter {}
+
+impl Interpreter {
+    pub fn new() -> Self {
+        Interpreter {}
+    }
+
+    pub fn interpret(&mut self, statements: &Vec<Stmt>, print: bool) -> Result<(), RuntimeError> {
+        for stmt in statements {
+            let value = stmt.accept(self)?;
+            if print || matches!(stmt, Stmt::Print(_)) {
+                println!("{}", value);
+            }
+        }
+        Ok(())
+    }
+}
+
+impl StmtVisitor<Result<LiteralValue, RuntimeError>> for Interpreter {
+    fn visit_expr(&mut self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
+        expr.accept(self)
+    }
+
+    fn visit_print(&mut self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
+        expr.accept(self)
+    }
+}
+
+impl ExprVisitor<Result<LiteralValue, RuntimeError>> for Interpreter {
+    fn visit_binary(&mut self, expr: &Binary) -> Result<LiteralValue, RuntimeError> {
+        let left = expr.left.accept(self)?;
+        let right = expr.right.accept(self)?;
+        evaluate_binary_expr(left, right, &expr.operator)
+    }
+
+    fn visit_unary(&mut self, expr: &Unary) -> Result<LiteralValue, RuntimeError> {
+        let operator = expr.operator.typ;
+        let right = expr.right.accept(self)?;
+        match (&operator, &right) {
+            (TokenType::Minus, LiteralValue::Number(right)) => Ok(LiteralValue::Number(-right)),
+            (TokenType::Bang, right) => Ok(LiteralValue::Boolean(!right.is_truthy())),
+            _ => Err(RuntimeError::invalid_operator(
+                operator,
+                expr.operator.clone(),
+            )),
+        }
+    }
+
+    fn visit_grouping(&mut self, expr: &Grouping) -> Result<LiteralValue, RuntimeError> {
+        expr.expr.accept(self)
+    }
+
+    fn visit_literal(&mut self, expr: &Literal) -> Result<LiteralValue, RuntimeError> {
+        Ok(expr.value.clone())
     }
 }
 
@@ -143,47 +182,5 @@ fn evaluate_binary_expr(
             }
         }
         _ => Err(RuntimeError::invalid_operator(operator_type, op.clone())),
-    }
-}
-
-impl StmtVisitor<Result<LiteralValue, RuntimeError>> for Interpreter {
-    fn visit_expr_stmt(&mut self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
-        expr.accept(self)?;
-        Ok(LiteralValue::Nil)
-    }
-
-    fn visit_print_stmt(&mut self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
-        let value = expr.accept(self)?;
-        println!("{}", value);
-        Ok(value)
-    }
-}
-
-impl ExprVisitor<Result<LiteralValue, RuntimeError>> for Interpreter {
-    fn visit_binary_expr(&mut self, expr: &Binary) -> Result<LiteralValue, RuntimeError> {
-        let left = expr.left.accept(self)?;
-        let right = expr.right.accept(self)?;
-        evaluate_binary_expr(left, right, &expr.operator)
-    }
-
-    fn visit_unary_expr(&mut self, expr: &Unary) -> Result<LiteralValue, RuntimeError> {
-        let operator = expr.operator.typ;
-        let right = expr.right.accept(self)?;
-        match (&operator, &right) {
-            (TokenType::Minus, LiteralValue::Number(right)) => Ok(LiteralValue::Number(-right)),
-            (TokenType::Bang, right) => Ok(LiteralValue::Boolean(!right.is_truthy())),
-            _ => Err(RuntimeError::invalid_operator(
-                operator,
-                expr.operator.clone(),
-            )),
-        }
-    }
-
-    fn visit_grouping_expr(&mut self, expr: &Grouping) -> Result<LiteralValue, RuntimeError> {
-        expr.expr.accept(self)
-    }
-
-    fn visit_literal_expr(&mut self, expr: &Literal) -> Result<LiteralValue, RuntimeError> {
-        Ok(expr.value.clone())
     }
 }
