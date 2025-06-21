@@ -4,9 +4,9 @@ use std::{
     process::ExitCode,
 };
 
-use crate::{expr_eval::Interpreter, parser::Parser, scanner::Scanner};
+use crate::{ast_printer::AstPrinter, intrepreter::Interpreter, parser::Parser, scanner::Scanner};
 mod ast_printer;
-mod expr_eval;
+mod intrepreter;
 mod parser;
 mod scanner;
 mod token;
@@ -34,7 +34,7 @@ fn run_file(path: &str) -> Result<(), ExitCode> {
         eprintln!("Error reading {path}: {e}");
         ExitCode::from(65)
     })?;
-    run_source(&src, false).map_err(|_| ExitCode::from(65))
+    run_source(&src).map_err(|_| ExitCode::from(65))
 }
 
 fn repl() -> Result<(), ExitCode> {
@@ -49,13 +49,13 @@ fn repl() -> Result<(), ExitCode> {
         if stdin.read_line(&mut line).unwrap() == 0 {
             break; // EOF
         }
-        let _ = run_source(&line, true); // Ignore per-line errors, keep REPL alive
+        let _ = run_source(&line); // Ignore per-line errors, keep REPL alive
     }
     Ok(())
 }
 
 /// Scan → parse → interpret one chunk of Lox source.
-fn run_source(src: &str, print: bool) -> Result<(), ()> {
+fn run_source(src: &str) -> Result<(), ()> {
     let mut scanner = Scanner::new(src.to_owned());
     let tokens = scanner.scan_tokens();
     if scanner.has_error() {
@@ -63,10 +63,18 @@ fn run_source(src: &str, print: bool) -> Result<(), ()> {
     }
 
     let mut parser = Parser::new(tokens);
-    let stmts = parser.parse().map_err(|_| ())?;
+    let stmts = parser.parse().map_err(|e| {
+        eprintln!("{}", e);
+        ()
+    })?;
+
+    let mut ast_printer = AstPrinter::new();
+    for stmt in &stmts {
+        println!("{}", stmt.accept(&mut ast_printer));
+    }
 
     let mut interp = Interpreter::new();
-    interp.interpret(&stmts, print).map_err(|e| {
+    interp.interpret(&stmts).map_err(|e| {
         eprintln!("[line {}] Error: {}", e.token.line, e.message);
     })
 }

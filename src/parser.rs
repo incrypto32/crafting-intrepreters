@@ -5,15 +5,32 @@ use crate::token::{LiteralValue, Token, TokenType};
 pub enum Stmt {
     Expr(Expr),
     Print(Expr),
+    Variable(Var),
 }
 
 impl Stmt {
+    #[allow(dead_code)]
     pub fn accept<T>(&self, visitor: &mut dyn StmtVisitor<T>) -> T {
         match self {
             Stmt::Expr(expr) => visitor.visit_expr(expr),
             Stmt::Print(expr) => visitor.visit_print(expr),
+            Stmt::Variable(var) => visitor.visit_variable(var),
         }
     }
+
+    pub fn accept_mut<T>(&self, visitor: &mut dyn StmtVisitorMut<T>) -> T {
+        match self {
+            Stmt::Expr(expr) => visitor.visit_expr(expr),
+            Stmt::Print(expr) => visitor.visit_print(expr),
+            Stmt::Variable(var) => visitor.visit_variable(var),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Var {
+    pub name: Token,
+    pub initializer: Option<Box<Expr>>,
 }
 
 #[derive(Debug)]
@@ -45,6 +62,13 @@ pub trait ExprVisitor<T> {
 pub trait StmtVisitor<T> {
     fn visit_expr(&self, expr: &Expr) -> T;
     fn visit_print(&self, expr: &Expr) -> T;
+    fn visit_variable(&self, var: &Var) -> T;
+}
+
+pub trait StmtVisitorMut<T> {
+    fn visit_expr(&mut self, expr: &Expr) -> T;
+    fn visit_print(&mut self, expr: &Expr) -> T;
+    fn visit_variable(&mut self, var: &Var) -> T;
 }
 
 #[derive(Debug)]
@@ -95,7 +119,7 @@ impl Parser {
     pub fn parse(&mut self) -> Result<Vec<Stmt>, ParseError> {
         let mut statements = Vec::new();
         while !self.is_at_end() {
-            statements.push(self.statement()?);
+            statements.push(self.declaration()?);
         }
         Ok(statements)
     }
@@ -106,12 +130,33 @@ impl Parser {
         self.expression()
     }
 
+    fn declaration(&mut self) -> Result<Stmt, ParseError> {
+        if self.match_token(&[TokenType::Var]) {
+            return self.var_declaration();
+        }
+        self.statement()
+    }
+
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.match_token(&[TokenType::Print]) {
             return self.print_statement();
         }
 
         self.expression_statement()
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt, ParseError> {
+        let name = self.consume(TokenType::Identifier, "Expect variable name.")?;
+        let initializer = if self.match_token(&[TokenType::Equal]) {
+            Some(Box::new(self.expression()?))
+        } else {
+            None
+        };
+        self.consume(
+            TokenType::SemiColon,
+            "Expect ';' after variable declaration.",
+        )?;
+        Ok(Stmt::Variable(Var { name, initializer }))
     }
 
     fn expression_statement(&mut self) -> Result<Stmt, ParseError> {

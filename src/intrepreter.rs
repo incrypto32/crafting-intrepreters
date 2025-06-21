@@ -1,4 +1,8 @@
-use crate::parser::{Binary, Expr, ExprVisitor, Grouping, Literal, Stmt, StmtVisitor, Unary};
+use std::collections::HashMap;
+
+use crate::parser::{
+    Binary, Expr, ExprVisitor, Grouping, Literal, Stmt, StmtVisitorMut, Unary, Var,
+};
 use crate::token::{LiteralValue, Token, TokenType};
 
 pub struct RuntimeError {
@@ -41,31 +45,63 @@ fn format_literal(literal: &LiteralValue) -> String {
     }
 }
 
-pub struct Interpreter {}
+pub struct Environment {
+    values: HashMap<String, LiteralValue>,
+}
 
-impl Interpreter {
+pub struct Interpreter {
+    environment: Environment,
+}
+
+impl Environment {
     pub fn new() -> Self {
-        Interpreter {}
-    }
-
-    pub fn interpret(&mut self, statements: &Vec<Stmt>, print: bool) -> Result<(), RuntimeError> {
-        for stmt in statements {
-            let value = stmt.accept(self)?;
-            if print || matches!(stmt, Stmt::Print(_)) {
-                println!("{}", value);
-            }
+        Environment {
+            values: HashMap::new(),
         }
-        Ok(())
     }
 }
 
-impl StmtVisitor<Result<LiteralValue, RuntimeError>> for Interpreter {
-    fn visit_expr(&self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
-        expr.accept(self)
+impl Interpreter {
+    pub fn new() -> Self {
+        Interpreter {
+            environment: Environment::new(),
+        }
     }
 
-    fn visit_print(&self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
-        expr.accept(self)
+    pub fn interpret(&mut self, statements: &Vec<Stmt>) -> Result<(), RuntimeError> {
+        for stmt in statements {
+            stmt.accept_mut(self)?;
+        }
+        println!("{:?}", self.environment.values);
+        Ok(())
+    }
+
+    pub fn add_variable(&mut self, name: &Token, value: LiteralValue) {
+        self.environment.values.insert(name.lexeme.clone(), value);
+    }
+}
+
+type LiteralValueResult = Result<LiteralValue, RuntimeError>;
+
+impl StmtVisitorMut<Result<(), RuntimeError>> for Interpreter {
+    fn visit_expr(&mut self, expr: &Expr) -> Result<(), RuntimeError> {
+        expr.accept::<LiteralValueResult>(self).map(|_| ())
+    }
+
+    fn visit_print(&mut self, expr: &Expr) -> Result<(), RuntimeError> {
+        let value = expr.accept::<LiteralValueResult>(self)?;
+        println!("{}", value);
+        Ok(())
+    }
+
+    fn visit_variable(&mut self, var: &Var) -> Result<(), RuntimeError> {
+        if let Some(expr) = &var.initializer {
+            let value = expr.accept::<LiteralValueResult>(self)?;
+            let name = &var.name;
+            self.add_variable(name, value);
+        }
+
+        Ok(())
     }
 }
 
