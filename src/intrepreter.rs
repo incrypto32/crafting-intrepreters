@@ -76,8 +76,8 @@ impl Interpreter {
         Ok(())
     }
 
-    pub fn add_variable(&mut self, name: &Token, value: LiteralValue) {
-        self.environment.values.insert(name.lexeme.clone(), value);
+    pub fn add_variable(&mut self, name: &String, value: LiteralValue) {
+        self.environment.values.insert(name.clone(), value);
     }
 }
 

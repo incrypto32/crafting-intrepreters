@@ -29,7 +29,7 @@ impl Stmt {
 
 #[derive(Debug)]
 pub struct Var {
-    pub name: Token,
+    pub name: String,
     pub initializer: Option<Box<Expr>>,
 }
 
@@ -102,7 +102,7 @@ pub struct ParseError {
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} at line {}", self.message, self.token.line)
+        write!(f, "ParseError: {} at line {}", self.message, self.token.line)
     }
 }
 
@@ -156,7 +156,10 @@ impl Parser {
             TokenType::SemiColon,
             "Expect ';' after variable declaration.",
         )?;
-        Ok(Stmt::Variable(Var { name, initializer }))
+        Ok(Stmt::Variable(Var {
+            name: name.lexeme,
+            initializer,
+        }))
     }
 
     fn expression_statement(&mut self) -> Result<Stmt, ParseError> {
