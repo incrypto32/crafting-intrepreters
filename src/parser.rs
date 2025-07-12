@@ -5,7 +5,7 @@ use crate::token::{LiteralValue, Token, TokenType};
 pub enum Stmt {
     Expr(Expr),
     Print(Expr),
-    Variable(Var),
+    Variable(VarAssignment),
 }
 
 impl Stmt {
@@ -28,7 +28,7 @@ impl Stmt {
 }
 
 #[derive(Debug)]
-pub struct Var {
+pub struct VarAssignment {
     pub token: Token,
     pub initializer: Option<Box<Expr>>,
 }
@@ -39,7 +39,8 @@ pub enum Expr {
     Unary(Unary),
     Grouping(Grouping),
     Literal(Literal),
-    Variable(Var),
+    Variable { token: Token },
+    Assign { token: Token, value: Box<Expr> },
 }
 
 impl Expr {
@@ -49,7 +50,19 @@ impl Expr {
             Expr::Unary(expr) => visitor.visit_unary(expr),
             Expr::Grouping(expr) => visitor.visit_grouping(expr),
             Expr::Literal(expr) => visitor.visit_literal(expr),
-            Expr::Variable(expr) => visitor.visit_variable(expr),
+            Expr::Variable { token } => visitor.visit_variable(token),
+            Expr::Assign { token, value } => visitor.visit_assign(token, value),
+        }
+    }
+
+    pub fn accept_mut<T>(&self, visitor: &mut dyn ExprVisitorMut<T>) -> T {
+        match self {
+            Expr::Binary(expr) => visitor.visit_binary(expr),
+            Expr::Unary(expr) => visitor.visit_unary(expr),
+            Expr::Grouping(expr) => visitor.visit_grouping(expr),
+            Expr::Literal(expr) => visitor.visit_literal(expr),
+            Expr::Variable { token } => visitor.visit_variable(token),
+            Expr::Assign { token, value } => visitor.visit_assign(token, value),
         }
     }
 }
@@ -59,19 +72,29 @@ pub trait ExprVisitor<T> {
     fn visit_unary(&self, expr: &Unary) -> T;
     fn visit_grouping(&self, expr: &Grouping) -> T;
     fn visit_literal(&self, expr: &Literal) -> T;
-    fn visit_variable(&self, expr: &Var) -> T;
+    fn visit_variable(&self, token: &Token) -> T;
+    fn visit_assign(&self, token: &Token, value: &Box<Expr>) -> T;
+}
+
+pub trait ExprVisitorMut<T> {
+    fn visit_binary(&mut self, expr: &Binary) -> T;
+    fn visit_unary(&mut self, expr: &Unary) -> T;
+    fn visit_grouping(&mut self, expr: &Grouping) -> T;
+    fn visit_literal(&mut self, expr: &Literal) -> T;
+    fn visit_variable(&mut self, token: &Token) -> T;
+    fn visit_assign(&mut self, token: &Token, value: &Box<Expr>) -> T;
 }
 
 pub trait StmtVisitor<T> {
     fn visit_expr(&self, expr: &Expr) -> T;
     fn visit_print(&self, expr: &Expr) -> T;
-    fn visit_variable(&self, var: &Var) -> T;
+    fn visit_variable(&self, var: &VarAssignment) -> T;
 }
 
 pub trait StmtVisitorMut<T> {
     fn visit_expr(&mut self, expr: &Expr) -> T;
     fn visit_print(&mut self, expr: &Expr) -> T;
-    fn visit_variable(&mut self, var: &Var) -> T;
+    fn visit_variable(&mut self, var: &VarAssignment) -> T;
 }
 
 #[derive(Debug)]
@@ -163,7 +186,7 @@ impl Parser {
             TokenType::SemiColon,
             "Expect ';' after variable declaration.",
         )?;
-        Ok(Stmt::Variable(Var {
+        Ok(Stmt::Variable(VarAssignment {
             token: name,
             initializer,
         }))
@@ -219,7 +242,30 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr, ParseError> {
+        let expr = self.equality()?;
+
+        if self.match_token(&[TokenType::Equal]) {
+            let equals = self.previous();
+            let value = Box::new(self.assignment()?);
+            if let Expr::Variable { token } = expr {
+                return Ok(Expr::Assign { token, value });
+            } else {
+                let lexeme = equals.lexeme.clone();
+                return Err(ParseError {
+                    token: equals,
+                    message: format!(
+                        "Invalid assignment target expected an identifier found '{}'",
+                        &lexeme
+                    ),
+                });
+            }
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr, ParseError> {
@@ -327,10 +373,9 @@ impl Parser {
         }
 
         if self.match_token(&[TokenType::Identifier]) {
-            return Ok(Expr::Variable(Var {
+            return Ok(Expr::Variable {
                 token: self.previous(),
-                initializer: None,
-            }));
+            });
         }
 
         if self.match_token(&[TokenType::LeftParen]) {

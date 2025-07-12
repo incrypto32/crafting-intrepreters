@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::parser::{
-    Binary, Expr, ExprVisitor, Grouping, Literal, Stmt, StmtVisitorMut, Unary, Var,
+    Binary, Expr, ExprVisitorMut, Grouping, Literal, Stmt, StmtVisitorMut, Unary, VarAssignment,
 };
 use crate::token::{LiteralValue, Token, TokenType};
 
@@ -104,18 +104,18 @@ type LiteralValueResult = Result<LiteralValue, RuntimeError>;
 
 impl StmtVisitorMut<Result<(), RuntimeError>> for Interpreter {
     fn visit_expr(&mut self, expr: &Expr) -> Result<(), RuntimeError> {
-        expr.accept::<LiteralValueResult>(self).map(|_| ())
+        expr.accept_mut::<LiteralValueResult>(self).map(|_| ())
     }
 
     fn visit_print(&mut self, expr: &Expr) -> Result<(), RuntimeError> {
-        let value = expr.accept::<LiteralValueResult>(self)?;
+        let value = expr.accept_mut::<LiteralValueResult>(self)?;
         println!("{}", value);
         Ok(())
     }
 
-    fn visit_variable(&mut self, var: &Var) -> Result<(), RuntimeError> {
+    fn visit_variable(&mut self, var: &VarAssignment) -> Result<(), RuntimeError> {
         if let Some(expr) = &var.initializer {
-            let value = expr.accept::<LiteralValueResult>(self)?;
+            let value = expr.accept_mut::<LiteralValueResult>(self)?;
             let name = &var.token.lexeme;
             self.define(name, value);
             return Ok(());
@@ -127,21 +127,31 @@ impl StmtVisitorMut<Result<(), RuntimeError>> for Interpreter {
     }
 }
 
-impl ExprVisitor<Result<LiteralValue, RuntimeError>> for Interpreter {
-    fn visit_binary(&self, expr: &Binary) -> Result<LiteralValue, RuntimeError> {
-        let left = expr.left.accept(self)?;
-        let right = expr.right.accept(self)?;
+impl ExprVisitorMut<Result<LiteralValue, RuntimeError>> for Interpreter {
+    fn visit_binary(&mut self, expr: &Binary) -> Result<LiteralValue, RuntimeError> {
+        let left = expr.left.accept_mut(self)?;
+        let right = expr.right.accept_mut(self)?;
         evaluate_binary_expr(left, right, &expr.operator)
     }
 
-    fn visit_variable(&self, expr: &Var) -> Result<LiteralValue, RuntimeError> {
-        let token = &expr.token;
+    fn visit_variable(&mut self, token: &Token) -> Result<LiteralValue, RuntimeError> {
         self.get(token.line, &token.lexeme)
     }
 
-    fn visit_unary(&self, expr: &Unary) -> Result<LiteralValue, RuntimeError> {
+    fn visit_assign(
+        &mut self,
+        token: &Token,
+        value: &Box<Expr>,
+    ) -> Result<LiteralValue, RuntimeError> {
+        let val = value.accept_mut(self)?;
+        self.define(&token.lexeme, val.clone());
+
+        Ok(val)
+    }
+
+    fn visit_unary(&mut self, expr: &Unary) -> Result<LiteralValue, RuntimeError> {
         let operator = expr.operator.typ;
-        let right = expr.right.accept(self)?;
+        let right = expr.right.accept_mut(self)?;
         match (&operator, &right) {
             (TokenType::Minus, LiteralValue::Number(right)) => Ok(LiteralValue::Number(-right)),
             (TokenType::Bang, right) => Ok(LiteralValue::Boolean(!right.is_truthy())),
@@ -152,11 +162,11 @@ impl ExprVisitor<Result<LiteralValue, RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_grouping(&self, expr: &Grouping) -> Result<LiteralValue, RuntimeError> {
-        expr.expr.accept(self)
+    fn visit_grouping(&mut self, expr: &Grouping) -> Result<LiteralValue, RuntimeError> {
+        expr.expr.accept_mut(self)
     }
 
-    fn visit_literal(&self, expr: &Literal) -> Result<LiteralValue, RuntimeError> {
+    fn visit_literal(&mut self, expr: &Literal) -> Result<LiteralValue, RuntimeError> {
         Ok(expr.value.clone())
     }
 }

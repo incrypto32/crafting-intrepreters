@@ -1,5 +1,7 @@
-use crate::parser::{Binary, Expr, ExprVisitor, Grouping, Literal, StmtVisitor, Unary, Var};
-use crate::token::LiteralValue;
+use crate::parser::{
+    Binary, Expr, ExprVisitor, Grouping, Literal, StmtVisitor, Unary, VarAssignment,
+};
+use crate::token::{LiteralValue, Token};
 
 pub struct AstPrinter {}
 
@@ -19,7 +21,7 @@ impl StmtVisitor<String> for AstPrinter {
         format!("print {}", expr.accept(self))
     }
 
-    fn visit_variable(&self, var: &Var) -> String {
+    fn visit_variable(&self, var: &VarAssignment) -> String {
         format!("{}", var.token.lexeme)
     }
 }
@@ -34,14 +36,17 @@ impl ExprVisitor<String> for AstPrinter {
         )
     }
 
-    fn visit_variable(&self, expr: &Var) -> String {
-        format!("{}", expr.token.lexeme)
+    fn visit_variable(&self, token: &Token) -> String {
+        format!("{}", token.lexeme)
     }
 
     fn visit_unary(&self, expr: &Unary) -> String {
         format!("({} {})", expr.operator, expr.right.accept(self))
     }
 
+    fn visit_assign(&self, token: &Token, value: &Box<Expr>) -> String {
+        format!("{} = {}", token.lexeme, value.accept(self))
+    }
 
     fn visit_grouping(&self, expr: &Grouping) -> String {
         format!("(group {})", expr.expr.accept(self))
