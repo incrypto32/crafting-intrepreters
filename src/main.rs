@@ -40,6 +40,7 @@ fn run_file(path: &str) -> Result<(), ExitCode> {
 fn repl() -> Result<(), ExitCode> {
     let mut line = String::new();
     let stdin = io::stdin();
+    let mut interp = Interpreter::new();
 
     loop {
         print!("> ");
@@ -49,7 +50,23 @@ fn repl() -> Result<(), ExitCode> {
         if stdin.read_line(&mut line).unwrap() == 0 {
             break; // EOF
         }
-        let _ = run_source(&line); // Ignore per-line errors, keep REPL alive
+
+        let mut scanner = Scanner::new(line.to_owned());
+        let tokens = scanner.scan_tokens();
+        if scanner.has_error() {
+            return Err(ExitCode::FAILURE);
+        }
+
+        let mut parser = Parser::new(tokens);
+        let stmts = parser.parse().map_err(|e| {
+            eprintln!("{}", e);
+            ExitCode::FAILURE
+        })?;
+
+        interp.interpret(&stmts).map_err(|e| {
+            eprintln!("[line {}] Error: {}", e.line, e.message);
+            ExitCode::FAILURE
+        })?
     }
     Ok(())
 }
@@ -75,6 +92,6 @@ fn run_source(src: &str) -> Result<(), ()> {
 
     let mut interp = Interpreter::new();
     interp.interpret(&stmts).map_err(|e| {
-        eprintln!("[line {}] Error: {}", e.token.line, e.message);
+        eprintln!("[line {}] Error: {}", e.line, e.message);
     })
 }

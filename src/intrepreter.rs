@@ -7,7 +7,7 @@ use crate::token::{LiteralValue, Token, TokenType};
 
 pub struct RuntimeError {
     pub message: String,
-    pub token: Token,
+    pub line: usize,
 }
 
 impl RuntimeError {
@@ -24,14 +24,21 @@ impl RuntimeError {
                 format_literal(&right),
                 message
             ),
-            token,
+            line: token.line,
         }
     }
 
     fn invalid_operator(token_type: TokenType, token: Token) -> Self {
         RuntimeError {
             message: format!("Invalid operator: {:?}", token_type),
-            token,
+            line: token.line,
+        }
+    }
+
+    fn undefined_variable(name: String, line: usize) -> Self {
+        RuntimeError {
+            message: format!("Undefined variable: {}", name),
+            line,
         }
     }
 }
@@ -45,6 +52,7 @@ fn format_literal(literal: &LiteralValue) -> String {
     }
 }
 
+#[derive(Debug)]
 pub struct Environment {
     values: HashMap<String, LiteralValue>,
 }
@@ -61,6 +69,12 @@ impl Environment {
     }
 }
 
+impl Environment {
+    pub fn get(&self, name: &String) -> Option<LiteralValue> {
+        self.values.get(name).cloned()
+    }
+}
+
 impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
@@ -72,12 +86,17 @@ impl Interpreter {
         for stmt in statements {
             stmt.accept_mut(self)?;
         }
-        println!("{:?}", self.environment.values);
         Ok(())
     }
 
-    pub fn add_variable(&mut self, name: &String, value: LiteralValue) {
+    pub fn define(&mut self, name: &String, value: LiteralValue) {
         self.environment.values.insert(name.clone(), value);
+    }
+
+    pub fn get(&self, line: usize, name: &String) -> Result<LiteralValue, RuntimeError> {
+        self.environment
+            .get(name)
+            .ok_or_else(|| RuntimeError::undefined_variable(name.clone(), line))
     }
 }
 
@@ -97,9 +116,12 @@ impl StmtVisitorMut<Result<(), RuntimeError>> for Interpreter {
     fn visit_variable(&mut self, var: &Var) -> Result<(), RuntimeError> {
         if let Some(expr) = &var.initializer {
             let value = expr.accept::<LiteralValueResult>(self)?;
-            let name = &var.name;
-            self.add_variable(name, value);
+            let name = &var.token.lexeme;
+            self.define(name, value);
+            return Ok(());
         }
+
+        self.define(&var.token.lexeme, LiteralValue::Nil);
 
         Ok(())
     }
@@ -110,6 +132,11 @@ impl ExprVisitor<Result<LiteralValue, RuntimeError>> for Interpreter {
         let left = expr.left.accept(self)?;
         let right = expr.right.accept(self)?;
         evaluate_binary_expr(left, right, &expr.operator)
+    }
+
+    fn visit_variable(&self, expr: &Var) -> Result<LiteralValue, RuntimeError> {
+        let token = &expr.token;
+        self.get(token.line, &token.lexeme)
     }
 
     fn visit_unary(&self, expr: &Unary) -> Result<LiteralValue, RuntimeError> {

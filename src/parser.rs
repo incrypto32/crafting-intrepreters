@@ -29,7 +29,7 @@ impl Stmt {
 
 #[derive(Debug)]
 pub struct Var {
-    pub name: String,
+    pub token: Token,
     pub initializer: Option<Box<Expr>>,
 }
 
@@ -39,6 +39,7 @@ pub enum Expr {
     Unary(Unary),
     Grouping(Grouping),
     Literal(Literal),
+    Variable(Var),
 }
 
 impl Expr {
@@ -48,6 +49,7 @@ impl Expr {
             Expr::Unary(expr) => visitor.visit_unary(expr),
             Expr::Grouping(expr) => visitor.visit_grouping(expr),
             Expr::Literal(expr) => visitor.visit_literal(expr),
+            Expr::Variable(expr) => visitor.visit_variable(expr),
         }
     }
 }
@@ -57,6 +59,7 @@ pub trait ExprVisitor<T> {
     fn visit_unary(&self, expr: &Unary) -> T;
     fn visit_grouping(&self, expr: &Grouping) -> T;
     fn visit_literal(&self, expr: &Literal) -> T;
+    fn visit_variable(&self, expr: &Var) -> T;
 }
 
 pub trait StmtVisitor<T> {
@@ -102,7 +105,11 @@ pub struct ParseError {
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ParseError: {} at line {}", self.message, self.token.line)
+        write!(
+            f,
+            "ParseError: {} at line {}",
+            self.message, self.token.line
+        )
     }
 }
 
@@ -157,7 +164,7 @@ impl Parser {
             "Expect ';' after variable declaration.",
         )?;
         Ok(Stmt::Variable(Var {
-            name: name.lexeme,
+            token: name,
             initializer,
         }))
     }
@@ -316,6 +323,13 @@ impl Parser {
         if self.match_token(&[TokenType::Number]) {
             return Ok(Expr::Literal(Literal {
                 value: self.previous().literal.clone().unwrap(),
+            }));
+        }
+
+        if self.match_token(&[TokenType::Identifier]) {
+            return Ok(Expr::Variable(Var {
+                token: self.previous(),
+                initializer: None,
             }));
         }
 

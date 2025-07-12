@@ -20,7 +20,7 @@ impl StmtVisitor<String> for AstPrinter {
     }
 
     fn visit_variable(&self, var: &Var) -> String {
-        format!("{}", var.name)
+        format!("{}", var.token.lexeme)
     }
 }
 
@@ -32,6 +32,10 @@ impl ExprVisitor<String> for AstPrinter {
             expr.left.accept(self),
             expr.right.accept(self)
         )
+    }
+
+    fn visit_variable(&self, expr: &Var) -> String {
+        format!("{}", expr.token.lexeme)
     }
 
     fn visit_unary(&self, expr: &Unary) -> String {
